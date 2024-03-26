@@ -13,21 +13,21 @@ class PostQuerySet(models.QuerySet):
 
     def popular(self):
         popular_posts = self\
-            .annotate(likes_count=models.Count('likes'))\
+            .annotate(likes_count=models.Count('likes', distinct=True))\
             .order_by('-likes_count')
 
         return popular_posts
 
     def fetch_with_comments_count(self):
         """
-        Optimize two `.annotate` to reduce simple
-        queries to database.
+        Optimize two `.annotate` to avoid
+        unnecessary resource consumption.
         """
         posts_ids = [post.id for post in self]
 
         posts_with_comments = Post.objects\
             .filter(id__in=posts_ids)\
-            .annotate(num_comments=models.Count('comments'))
+            .annotate(num_comments=models.Count('comments', distinct=True))
 
         ids_and_comments = posts_with_comments\
             .values_list('id', 'num_comments')
@@ -77,7 +77,7 @@ class Post(models.Model):
 class TagQuerySet(models.QuerySet):
     def popular(self):
         popular_tags = self\
-            .annotate(num_posts=models.Count('posts'))\
+            .annotate(num_posts=models.Count('posts', distinct=True))\
             .order_by('-num_posts')
 
         return popular_tags

@@ -27,7 +27,7 @@ def serialize_post_optimized(post: Post):
         'published_at': post.published_at,
         'slug': post.slug,
         'tags': [serialize_tag(tag) for tag in post.tags.all()],
-        'first_tag_title': post.tags.all()[0].title,
+        'first_tag_title': post.tags.all().first().title,
     }
 
 
@@ -42,11 +42,13 @@ def index(request):
     most_popular_posts = Post.objects\
         .popular()\
         .prefetch_related('author')[:5]\
+        .prefetch_related('tags')\
         .fetch_with_comments_count()
 
     fresh_posts = Post.objects\
         .annotate(num_comments=Count('comments', distinct=True))\
         .prefetch_related('author')\
+        .prefetch_related('tags')\
         .order_by('published_at')
     most_fresh_posts = list(fresh_posts)[-5:]
 
