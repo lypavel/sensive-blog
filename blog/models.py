@@ -38,6 +38,14 @@ class PostQuerySet(models.QuerySet):
 
         return self
 
+    def prefetch_related_tags(self):
+        prefetched_tags = self.prefetch_related(
+            models.Prefetch('tags', queryset=Tag.objects.all()
+                            .annotate(num_posts=models.Count('posts')))
+        )
+
+        return prefetched_tags
+
 
 class Post(models.Model):
     title = models.CharField('Заголовок', max_length=200)
