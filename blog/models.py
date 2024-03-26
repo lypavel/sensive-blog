@@ -12,11 +12,31 @@ class PostQuerySet(models.QuerySet):
         return posts_at_year
 
     def popular(self):
-        popular_tags = self\
-            .annotate(num_posts=models.Count('posts'))\
-            .order_by('-num_posts')
+        popular_posts = self\
+            .annotate(likes_count=models.Count('likes'))\
+            .order_by('-likes_count')
 
-        return popular_tags
+        return popular_posts
+
+    def fetch_with_comments_count(self):
+        """
+        Optimize two `.annotate` to reduce simple
+        queries to database.
+        """
+        posts_ids = [post.id for post in self]
+
+        posts_with_comments = Post.objects\
+            .filter(id__in=posts_ids)\
+            .annotate(num_comments=models.Count('comments'))
+
+        ids_and_comments = posts_with_comments\
+            .values_list('id', 'num_comments')
+
+        count_for_id = dict(ids_and_comments)
+        for post in self:
+            post.num_comments = count_for_id[post.id]
+
+        return self
 
 
 class Post(models.Model):
@@ -54,9 +74,18 @@ class Post(models.Model):
         verbose_name_plural = 'посты'
 
 
+class TagQuerySet(models.QuerySet):
+    def popular(self):
+        popular_tags = self\
+            .annotate(num_posts=models.Count('posts'))\
+            .order_by('-num_posts')
+
+        return popular_tags
+
+
 class Tag(models.Model):
     title = models.CharField('Тег', max_length=20, unique=True)
-    objects = PostQuerySet.as_manager()
+    objects = TagQuerySet.as_manager()
 
     def __str__(self):
         return self.title
